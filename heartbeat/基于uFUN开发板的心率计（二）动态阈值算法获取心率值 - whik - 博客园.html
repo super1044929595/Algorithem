@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="referrer" content="never" />
+    <meta name="description" content="前言 上一篇文章： &amp;quot;基于uFUN开发板的心率计（一）DMA方式获取传感器数据&amp;quot; ，介绍了如何获取PulseSensor心率传感器的电压值，并对硬件电路进行了计算分析。心率计，重要" />
+    <meta property="og:description" content="前言 上一篇文章： &amp;quot;基于uFUN开发板的心率计（一）DMA方式获取传感器数据&amp;quot; ，介绍了如何获取PulseSensor心率传感器的电压值，并对硬件电路进行了计算分析。心率计，重要" />
+    <meta http-equiv="Cache-Control" content="no-transform" />
+    <meta http-equiv="Cache-Control" content="no-siteapp" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>基于uFUN开发板的心率计（二）动态阈值算法获取心率值 - whik - 博客园</title>
+    <link id="favicon" rel="shortcut icon" href="//common.cnblogs.com/favicon.svg" type="image/svg+xml" />
+    
+    <link rel="stylesheet" href="/css/blog-common.min.css?v=doIZISfk03KmIHdAFVJKSPTcfXReNrMsc7FhuTymoVg" />
+    <link id="MainCss" rel="stylesheet" href="/skins/bluesky/bundle-bluesky.min.css?v=DplOdusw2SF8rGVFGIUXTZE_crkPozG6dFms9OPtqC8" />
+    <link id="highlighter-theme-cnblogs" type="text/css" rel="stylesheet" href="/css/hljs/cnblogs.css?v=yKPfCbE6NGwg5Jn8Cm5G98RHufDcX_NIbkGDyVPvWPQ" />
+    
+    <link id="mobile-style" media="only screen and (max-width: 767px)" type="text/css" rel="stylesheet" href="/skins/bluesky/bundle-bluesky-mobile.min.css?v=tr_MzP0zjEBjMFAPqb4u9j-7QlQbSBo-6z4-CTR7_Pw" />
+    
+    <link type="application/rss+xml" rel="alternate" href="https://www.cnblogs.com/whik/rss" />
+    <link type="application/rsd+xml" rel="EditURI" href="https://www.cnblogs.com/whik/rsd.xml" />
+    <link type="application/wlwmanifest+xml" rel="wlwmanifest" href="https://www.cnblogs.com/whik/wlwmanifest.xml" />
+    <script>
+        var currentBlogId = 339838;
+        var currentBlogApp = 'whik';
+        var cb_enable_mathjax = false;
+        var isLogined = false;
+        var isBlogOwner = false;
+        var skinName = 'BlueSky';
+        var visitorUserId = '';
+        var hasCustomScript = false;
+        try {
+            if (hasCustomScript && document.referrer && document.referrer.indexOf('baidu.com') >= 0) {
+                Object.defineProperty(document, 'referrer', { value: '' });
+                Object.defineProperty(Document.prototype, 'referrer', { get: function(){ return ''; } });
+            }
+        } catch(error) { }
+        window.codeHighlightEngine = 1;
+        window.enableCodeLineNumber = false;
+        window.codeHighlightTheme = 'cnblogs';
+    </script>
+        <script>
+            var currentPostDateAdded = '2019-03-31 14:21';
+        </script>
+    <script src="https://common.cnblogs.com/scripts/jquery-2.2.0.min.js"></script>
+    <script src="/js/blog-common.min.js?v=swCqY-epQupB4FDBrkIUbrdmkVImgE3erJ3hQJlc4O0"></script>
+    
+    
+    
+</head>
+<body class="skin-bluesky has-navbar">
+    <a name="top"></a>
+    <div id="top_nav" class="navbar forpc">
+        <nav id="nav_main" class="navbar-main">
+            <ul id="nav_left" class="navbar-list navbar-left">
+                <li class="navbar-branding">
+                    <a href="https://www.cnblogs.com/" title="开发者的网上家园">
+                            <img src="/images/logo.svg?v=R9M0WmLAIPVydmdzE2keuvnjl-bPR7_35oHqtiBzGsM" alt="博客园Logo" />
+                    </a>
+                </li>
+                <li><a href="/" onclick="countClicks('skin-navbar-sitehome')">首页</a></li>
+                <li><a href="https://news.cnblogs.com/" onclick="countClicks('nav', 'skin-navbar-news')">新闻</a></li>
+                <li><a href="https://q.cnblogs.com/" onclick="countClicks('nav', 'skin-navbar-q')">博问</a></li>
+                <li><a id="nav_brandzone" href="https://brands.cnblogs.com/" onclick="countClicks('nav', 'skin-navbar-brands')">专区</a></li>
+                <li><a href="https://ing.cnblogs.com/" onclick="countClicks('nav', 'skin-navbar-ing')">闪存</a></li>
+                <li><a href="https://edu.cnblogs.com/" onclick="countClicks('nav', 'skin-navbar-edu')">班级</a></li>
+            </ul>
+            <ul id="nav_right" class="navbar-list navbar-right">
+                <li>
+                    <form id="zzk_search" class="navbar-search" action="https://zzk.cnblogs.com/s" method="get">
+                        <input name="w" id="zzk_search_input" placeholder="代码改变世界" type="text" tabindex="3" />
+                        <button type="submit" id="zzk_search_button">
+                            <img src="/images/aggsite/search.svg" alt="搜索" />
+                        </button>
+                    </form>
+                </li>
+                <li id="navbar_login_status" class="navbar-list">
+                    <a class="navbar-user-info navbar-blog" href="https://i.cnblogs.com/EditPosts.aspx?opt=1" alt="写随笔" title="写随笔">
+                        <img id="new_post_icon" class="navbar-icon" src="/images/aggsite/newpost.svg" alt="写随笔" />
+                    </a>
+                    <a id="navblog-myblog-icon" class="navbar-user-info navbar-blog" href="https://passport.cnblogs.com/GetBlogApplyStatus.aspx" alt="我的博客" title="我的博客">
+                        <img id="myblog_icon" class="navbar-icon" src="/images/aggsite/myblog.svg" alt="我的博客" />
+                    </a>
+                    <a class="navbar-user-info navbar-message navbar-icon-wrapper" href="https://msg.cnblogs.com/" alt="短消息" title="短消息">
+                        <img id="msg_icon" class="navbar-icon" src="/images/aggsite/message.svg?v=J0WS2P2iPgaIVgXxcAhliw4AFZIpaTWxtdoNAv9eiCA" alt="短消息" />
+                        <span id="msg_count" style="display: none"></span>
+                    </a>
+                    <div id="user_info" class="navbar-user-info dropdown">
+                        <a class="dropdown-button" href="https://home.cnblogs.com/">
+                            <img id="user_icon" class="navbar-avatar" src="/images/aggsite/avatar-default.svg" alt="用户头像" />
+                        </a>
+                        <div class="dropdown-menu">
+                            <a id="navblog-myblog-text" href="https://passport.cnblogs.com/GetBlogApplyStatus.aspx">我的博客</a>
+                            <a href="https://home.cnblogs.com/">我的园子</a>
+                            <a href="https://account.cnblogs.com/settings/account">账号设置</a>
+                            <a href="javascript:void(0)" id="navbar_lite_mode_toggle" title="简洁模式会使用简洁款皮肤显示所有博客">
+    简洁模式 <img id="navbar_lite_mode_on" src="/images/lite-mode-check.svg" class="hide" /><span id="navbar_lite_mode_spinner" class="hide">...</span>
+</a>
+                            <a href="javascript:void(0)" onclick="account.logout();">退出登录</a>
+                        </div>
+                    </div>
+                    <a class="navbar-anonymous" href="https://account.cnblogs.com/signup/">注册</a>
+                    <a class="navbar-anonymous" href="javascript:void(0);" onclick="account.login()">登录</a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+
+    
+    <!--done-->
+<div id="home">
+<div id="header">
+	<div id="blogTitle">
+        <a id="lnkBlogLogo" href="https://www.cnblogs.com/whik/"><img id="blogLogo" src="/skins/custom/images/logo.gif" alt="返回主页" /></a>		
+		
+<!--done-->
+<h1><a id="Header1_HeaderTitle" class="headermaintitle HeaderMainTitle" href="https://www.cnblogs.com/whik/">whik</a>
+</h1>
+<h2>公众号：mcu149，博客：www.wangchaochao.top</h2>
+
+
+
+
+		
+	</div><!--end: blogTitle 博客的标题和副标题 -->
+	<div id="navigator">
+		
+<ul id="navList">
+<li><a id="blog_nav_sitehome" class="menu" href="https://www.cnblogs.com/">
+博客园</a>
+</li>
+<li>
+<a id="blog_nav_myhome" class="menu" href="https://www.cnblogs.com/whik/">
+首页</a>
+</li>
+<li>
+
+<a id="blog_nav_newpost" class="menu" href="https://i.cnblogs.com/EditPosts.aspx?opt=1">
+新随笔</a>
+</li>
+<li>
+<a id="blog_nav_contact" class="menu" href="https://msg.cnblogs.com/send/whik">
+联系</a></li>
+<li>
+<a id="blog_nav_rss" class="menu" href="javascript:void(0)" data-rss="https://www.cnblogs.com/whik/rss/">
+订阅</a>
+<!--<partial name="./Shared/_XmlLink.cshtml" model="Model" /></li>--></li>
+<li>
+<a id="blog_nav_admin" class="menu" href="https://i.cnblogs.com/">
+管理</a>
+</li>
+</ul>
+
+
+		<div class="blogStats">
+			<div id="blog_stats_place_holder"><script>loadBlogStats();</script></div>
+		</div><!--end: blogStats -->
+	</div><!--end: navigator 博客导航栏 -->
+</div><!--end: header 头部 -->
+<div id="main">
+	<div id="mainContent">
+	<div class="forFlow">
+		<div id="post_detail">
+    <!--done-->
+    <div id="topics">
+        <div class="post">
+            <h1 class = "postTitle">
+                
+<a id="cb_post_title_url" class="postTitle2 vertical-middle" href="https://www.cnblogs.com/whik/p/10631271.html">
+    <span>基于uFUN开发板的心率计（二）动态阈值算法获取心率值</span>
+    
+
+
+
+</a>
+
+            </h1>
+            <div class="clear"></div>
+            <div class="postBody">
+                <div id="cnblogs_post_body" class="blogpost-body cnblogs-markdown">
+<h3 id="前言">前言</h3>
+<p><img src="https://wcc-blog.oss-cn-beijing.aliyuncs.com/img/uFUN_5/sensor.jpg" alt="" loading="lazy"></p>
+<p>上一篇文章：<a href="http://www.wangchaochao.top/2019/03/23/uFun-3/" target="_blank" rel="noopener">基于uFUN开发板的心率计（一）DMA方式获取传感器数据</a>，介绍了如何获取PulseSensor心率传感器的电压值，并对硬件电路进行了计算分析。心率计，重要的是要获取到心率值，本篇文章将介绍一种采样数据处理算法——动态阈值算法，来获取心率值，这种算法来自于一位网友：<a href="http://www.shaoguoji.cn/2017/06/29/use-pulsesensor-with-stm32/" target="_blank" rel="noopener">玩的就是心跳 —— 使用 PulseSensor 脉搏传感器测量心率</a>，本文部分内容摘自这篇文章。</p>
+<h3 id="ibi和bpm">IBI和BPM</h3>
+<blockquote>
+<p>心率，指的是一分钟内的心跳次数，得到心率最笨的方法就是计时一分钟后数有多少次脉搏。但这样的话每次测心率都要等上个一分钟才有一次结果，效率极低。另外一种方法是，测量相邻两次脉搏的时间间隔，再用一分钟除以这个间隔得出心率。这样的好处是可以实时计算脉搏，效率高。</p>
+</blockquote>
+<blockquote>
+<p>IBI： 相邻两次脉搏的时间间隔，单位：s。</p>
+</blockquote>
+<blockquote>
+<p>BPM：心率，一分钟内的心跳次数。即<code>BPM = 6000 / IBI</code></p>
+</blockquote>
+<p><img src="https://wcc-blog.oss-cn-beijing.aliyuncs.com/img/uFUN_PulseSensor/out.JPG" alt="" loading="lazy"></p>
+<p>例如，在这张心率传感器输出信号的波形图中，可以计算出，两次波峰之间的时间为：0.685s，心率值为：60/0.685 = 87。</p>
+<p>从网上找来的 arduino 开源算法复杂的一匹，看了一遍感觉一头雾水（反正我暂时没看懂）。由上面的分析可以得出，我们的最终目的就是要求出 IBI 的值，并通过 IBI 计算出实时心率。既然知道原理了那就自己来把算法实现吧。<br>
+有兴趣研究官方算法的朋友，可以下载：<a href="https://wcc-blog.oss-cn-beijing.aliyuncs.com/BlogFile/PulseSensor%E8%B5%84%E6%96%99.rar" target="_blank" rel="noopener">PulseSensor资料.rar</a>。</p>
+<h3 id="核心操作--识别一个脉搏信号">核心操作 —— 识别一个脉搏信号</h3>
+<p>无论是采用计数法还是计时法，只有能识别出一个脉搏，才能数出一分钟内脉搏数或者计算两个相邻脉搏之间的时间间隔。那怎么从采集的电压波形数据判断是不是一个有效的脉搏呢？</p>
+<p>显然，可以通过检测波峰来识别脉搏。最简单粗暴的方法是设定一个阈值，当读取到的信号值大于此阈值时便认为检测一个脉搏。似乎用一个 if 语句就轻轻松松解决。但，事情真的有那么简单么？</p>
+<p>其实这里存在两个问题。</p>
+<h4 id="问题一阈值的选取">问题一：阈值的选取</h4>
+<p>作为判断的参考标尺，阈值该选多大？10？100？还是1000？我们不得而知，因为波形的电压范围是不确定的，振幅有大有小并且会改变，根本不能用一个写死的值去判断。就像下面这张图一样：</p>
+<p><img src="https://wcc-blog.oss-cn-beijing.aliyuncs.com/img/uFUN_5/%E6%B3%A2%E5%B3%B0.jpg" alt="" loading="lazy"></p>
+<p>可以看出，两个形状相同波形的检测结果截然不同 —— 同样是波峰，在不同振幅的波形中与阈值比较的结果存在差异。实际情况正是如此：传感器输出波形的振幅是在不断随机变化的，想用一个固定的值去判定波峰是不现实的。</p>
+<p>既然固定阈值的方法不可取，那自然想到改变阈值 —— 根据信号振幅调整阈值，以适应不同信号的波峰检测。通过对一个周期内的信号多次采样，得出信号的最高与最低电压值，由此算出阈值，再用这个阈值对采集的电压值进行判定，考虑是否为波峰。也就是说电压信号的处理分两步，首先动态计算出参考阈值，然后用用阈值对信号判定、识别一个波峰。</p>
+<p><img src="https://wcc-blog.oss-cn-beijing.aliyuncs.com/img/uFUN_5/%E6%B3%A2%E5%B3%B02.jpg" alt="" loading="lazy"></p>
+<h4 id="问题二特征点识别">问题二：特征点识别</h4>
+<p>上面得出的是一段有效波形，而计算 IBI 只需要一个点。需要从一段有效信号上选取一个点，这里暂且把它称为特征点，这个特征点代表了一个有效脉搏，只要能识别到这个特征点，就能在一个脉搏到来时触发任何动作。</p>
+<p>通过记录相邻两个特征点的时间并求差值，计算 IBI 便水到渠成。那这个特征点应该取在哪个位置呢，从官网算法说明可以看出，官方开源 arduino 代码的 v1.1 版本是选取信号上升到振幅的一半作为特征点，我们可以捕获这个特征点作为一个有效脉搏的标志，然后计算 IBI。</p>
+<p><img src="https://wcc-blog.oss-cn-beijing.aliyuncs.com/img/uFUN_5/%E6%B3%A2%E5%B3%B03.jpg" alt="" loading="lazy"></p>
+<h3 id="算法整体框架与代码实现">算法整体框架与代码实现</h3>
+<p>分析得出算法的整体框架如下：</p>
+<ul>
+<li>缓存一个波形周期内的多次采样值，求出最大最小值，计算出振幅中间值作为信号判定阈值</li>
+<li>通过把当前采样值和上一采样值与阈值作比较，寻找到「信号上升到振幅中间位置」的特征点，记录当前时间</li>
+<li>寻找下一个特征点并记录时间，算出两个点的时间差值，即相邻两次脉搏的时间间隔 IBI</li>
+<li>由 IBI 计算心率值 BPM</li>
+</ul>
+<p>代码如下，程序中使用一个 50 长度的数组进行采样数据缓存，在主函数 while (1) 中以 20ms 的周期不断执行采样、数据处理，其中的条件语句 if (PRE_PULSE == FALSE &amp;&amp; PULSE == TRUE) 就表示找到了特征点、识别出一次有效脉搏，串口输出心率计算结果。</p>
+<pre><code>int main(void)
+{
+	int i;
+	LED_Init();
+    delay_init();	    	 //延时函数初始化
+    UART1_Config(115200);	 	//串口初始化为9600
+    ADC1_Init();
+    while(1)
+    {
+        preReadData = readData;	        // 保存前一次值
+//        readData = GetPulseSensorValue();		// 读取AD转换值
+        readData = 4095 - ADC_ConvertedValue;		// 读取AD转换值
+
+        if((readData - preReadData) &lt; filter)     // 滤除突变噪声信号干扰
+            data[idx++] = readData;	// 填充缓存数组
+
+        if(idx &gt;= DATA_SIZE)
+        {
+            idx = 0;	// 数组填满，从头再填
+
+            // 通过缓存数组获取脉冲信号的波峰、波谷值，并计算中间值作为判定参考阈值
+            max = Get_Array_Max(data, DATA_SIZE);
+            min = Get_Array_Min(data, DATA_SIZE);
+            mid = (max + min) / 2;
+            filter = (max - min) / 2;
+        }
+
+        PRE_PULSE = PULSE;	// 保存当前脉冲状态
+        PULSE = (readData &gt; mid) ? TRUE : FALSE;  // 采样值大于中间值为有效脉冲
+
+        if(PRE_PULSE == FALSE &amp;&amp; PULSE == TRUE)   // 寻找到“信号上升到振幅中间位置”的特征点，检测到一次有效脉搏
+        {
+            pulseCount++;
+            pulseCount %= 2;
+
+            if(pulseCount == 1) // 两次脉搏的第一次
+            {
+                firstTimeCount = timeCount;   // 记录第一次脉搏时间
+            }
+            if(pulseCount == 0)  // 两次脉搏的第二次
+            {
+                secondTimeCount = timeCount;  // 记录第二次脉搏时间
+                timeCount = 0;
+
+                if((secondTimeCount &gt; firstTimeCount))
+                {
+                    IBI = (secondTimeCount - firstTimeCount) * SAMPLE_PERIOD;	// 计算相邻两次脉搏的时间，得到 IBI
+                    BPM = 60000 / IBI;  // 通过 IBI 得到心率值 BPM
+                    if(BPM &gt; 200)     //限制BPM最高显示值
+                        BPM = 200;
+                    if(BPM &lt; 30)     //限制BPM最低显示值
+                        BPM = 30;
+                }
+            }
+//			printf("B%d\r\n", BPM);
+			printf("SIG = %d IBI = %d, BMP = %d\r\n\r\n", readData, IBI, BPM);
+        }
+        SIG = readData;
+//        printf("S%d\r\n", SIG);  // 上位机S数据发送
+        timeCount++;  // 时间计数累加
+        delay_ms(SAMPLE_PERIOD);  // 延时再进行下一周期采样
+		if(i++ &gt;= 50)
+		{
+			LED = !LED;
+			i = 0;
+		}
+	}
+}
+</code></pre>
+<p>将传感器正面轻按在食指上，单片机在每检测到一个脉搏时打印心率值 BPM 和相邻两次脉搏的时间间隔 IBI，实测结果还算稳定。</p>
+<p><img src="https://wcc-blog.oss-cn-beijing.aliyuncs.com/img/uFUN_5/uart.jpg" alt="" loading="lazy"></p>
+<p>注意事项：</p>
+<ul>
+<li>避免手指触碰传感器背面</li>
+<li>传感器与手指之间不要施加过大压力，否则会阻碍血液流动而读不到脉搏信号</li>
+<li>传感器与手指之间的接触要保持稳定，按压力度的轻微变化都会影响电压值</li>
+</ul>
+<p>要获取到稳定的数据，可以胶布缠一下：</p>
+<p><img src="https://wcc-blog.oss-cn-beijing.aliyuncs.com/img/uFUN_5/sensor2.jpg" alt="" loading="lazy"></p>
+<p>另外这种传感器还可以夹在耳垂下面：</p>
+<p><img src="https://wcc-blog.oss-cn-beijing.aliyuncs.com/img/uFUN_5/sensor3.jpg" alt="" loading="lazy"></p>
+<h3 id="总结">总结</h3>
+<p>与许多可穿戴设备的心率传感器相比， PulseSensor 还存在很大差距，而自己写程序也仅仅是达到「勉强可用」的程度，输出数据偶尔还是会有大波动。代码也还有许多可改进的地方（比如将 20ms 的数据采样处理用定时器中断实现）。传感器采集到数据只是前提，对数据的处理才是一切应用的核心，不断地调整参数、改良算法也是整个过程中最有趣的部分。</p>
+<h3 id="基于ufun开发板的keil源码下载">基于uFUN开发板的Keil源码下载</h3>
+<ul>
+<li><a href="https://wcc-blog.oss-cn-beijing.aliyuncs.com/img/uFUN_5/STM32_GetBMP.rar" target="_blank" rel="noopener">STM32_GetBMP.rar</a></li>
+</ul>
+<h3 id="ufun评测系列文章">uFUN评测系列文章</h3>
+<ul>
+<li><a href="http://www.wangchaochao.top/2019/03/23/uFun-3/" target="_blank" rel="noopener">基于uFUN开发板的心率计（一）DMA方式获取传感器数据</a></li>
+<li><a href="http://www.wangchaochao.top/2019/03/09/uFun-1/" target="_blank" rel="noopener">【UFUN开发板评测】小巧而不失精致，简单而不失内涵——uFun开发板开箱爆照</a></li>
+<li><a href="http://www.wangchaochao.top/2019/03/20/uFun-4/" target="_blank" rel="noopener">如何使用串口来给STM32下载程序</a></li>
+<li><a href="http://www.wangchaochao.top/2019/03/17/uFun-2/" target="_blank" rel="noopener">STM32串口打印输出乱码的解决办法</a></li>
+<li><a href="http://www.wangchaochao.top/2019/03/09/uFun-0/" target="_blank" rel="noopener">Keil报错：cannot open source input file "core_cmInstr.h" 解决办法</a></li>
+</ul>
+<hr>
+<p>欢迎大家关注我的<a href="http://www.wangchaochao.top" target="_blank" rel="noopener">个人博客</a></p>
+<p>或微信扫码关注我的公众号</p>
+<p><img src="https://wcc-blog.oss-cn-beijing.aliyuncs.com/img/%E6%B1%82%E5%85%B3%E6%B3%A8.jpg" alt="" loading="lazy"></p>
+
+</div>
+<div class="clear"></div>
+<div id="blog_post_info_block">
+    <div id="blog_post_info"></div>
+    <div class="clear"></div>
+    <div id="post_next_prev"></div>
+</div>
+            </div>
+            <div class="postDesc">posted @ 
+<span id="post-date">2019-03-31 14:21</span>&nbsp;
+<a href="https://www.cnblogs.com/whik/">whik</a>&nbsp;
+阅读(<span id="post_view_count">2045</span>)&nbsp;
+评论(<span id="post_comment_count">0</span>)&nbsp;
+<a href="https://i.cnblogs.com/EditPosts.aspx?postid=10631271" rel="nofollow">编辑</a>&nbsp;
+<a href="javascript:void(0)" onclick="AddToWz(10631271);return false;">收藏</a>&nbsp;
+<a href="javascript:void(0)" onclick="reportManager.report({ currentUserId: '', targetType: 'blogPost', targetId: '10631271', targetLink: 'https://www.cnblogs.com/whik/p/10631271.html', title: '基于uFUN开发板的心率计（二）动态阈值算法获取心率值' })">举报</a></div>
+        </div>
+	    
+	    
+    </div><!--end: topics 文章、评论容器-->
+</div>
+
+<script>
+    markdown_highlight()
+    var allowComments = true, cb_blogId = 339838, cb_blogApp = 'whik', cb_blogUserGuid = '8e4580b6-0107-e711-845c-ac853d9f53ac';
+    var cb_entryId = 10631271, cb_entryCreatedDate = '2019-03-31 14:21', cb_postType = 1;
+    updatePostStats(
+        [cb_entryId],
+        function(id, count) { $("#post_view_count").text(count) },
+        function(id, count) { $("#post_comment_count").text(count) })
+    zoomManager.apply("#cnblogs_post_body img:not(.code_img_closed):not(.code_img_opened)");
+</script>
+<a id="!comments"></a>
+<div id="blog-comments-placeholder"></div>
+<div id="comment_form" class="commentform">
+    <a name="commentform"></a>
+    <div id="divCommentShow"></div>
+    <div id="comment_nav"><span id="span_refresh_tips"></span><a href="javascript:void(0);" onclick="return RefreshCommentList();" id="lnk_RefreshComments" runat="server" clientidmode="Static">刷新评论</a><a href="#" onclick="return RefreshPage();">刷新页面</a><a href="#top">返回顶部</a></div>
+    <div id="comment_form_container"></div>
+    <div class="ad_text_commentbox" id="ad_text_under_commentbox"></div>
+    <div id="cnblogs_ch"></div>
+    <div id="opt_under_post"></div>
+    <div id="cnblogs_c1" class="under-post-card">
+            <div id='div-gpt-ad-1592365906576-0' style='width: 300px; height: 250px;'></div>
+    </div>
+    <div id="under_post_card1"></div>
+        <div id="cnblogs_c2" class="under-post-card">
+            <a href="https://cloud.baidu.com/campaign/2022developer/index.html?track=a3bf76b1cfd5f7267f7e29bd6952301957009407f6071b35#cloud" rel="nofollow" target="_blank" onclick="countCreativeClicks('C2-百度智能云-开年见礼')">
+                <img src="https://img2022.cnblogs.com/blog/35695/202202/35695-20220217225133187-1009259458.jpg" alt="" onload="countCreativeImpressions('C2-百度智能云-开年见礼')" />
+            </a>
+        </div>
+    <div id="under_post_card2"></div>
+    <div id="HistoryToday" class="under-post-card"></div>
+    <script type="text/javascript">
+        var commentManager = new blogCommentManager();
+        commentManager.renderComments(0);
+        fixPostBody();
+
+                window.tocManager.displayDisableTocTips = false;
+                window.tocManager.generateToc();
+            setTimeout(function() { incrementViewCount(cb_entryId); }, 50);        deliverT2();
+        deliverC1C2();
+        loadNewsAndKb();
+LoadPostCategoriesTags(cb_blogId, cb_entryId);        LoadPostInfoBlock(cb_blogId, cb_entryId, cb_blogApp, cb_blogUserGuid);
+        GetPrevNextPost(cb_entryId, cb_blogId, cb_entryCreatedDate, cb_postType);
+        loadOptUnderPost();
+        GetHistoryToday(cb_blogId, cb_blogApp, cb_entryCreatedDate);
+    </script>
+</div>
+
+	</div><!--end: forFlow -->
+	</div><!--end: mainContent 主体内容容器-->
+	<div id="sideBar">
+		<div id="sideBarMain">
+			<div id="sidebar_news" class="newsItem">
+            <script>loadBlogNews();</script>
+</div>
+<div id="sidebar_c3"></div>
+			<div id="blog-calendar" style="display:none"></div><script>loadBlogDefaultCalendar();</script>			
+			<div id="leftcontentcontainer">
+				<div id="blog-sidecolumn"></div>
+                    <script>loadBlogSideColumn();</script>
+			</div>			
+		</div><!--end: sideBarMain -->
+	</div><!--end: sideBar 侧边栏容器 -->
+	<div class="clear"></div>
+	</div><!--end: main -->
+	<div class="clear"></div>
+	<div id="footer">
+		<!--done-->
+Copyright &copy; 2022 whik
+<br /><span id="poweredby">Powered by .NET 6 on Kubernetes</span>
+
+
+
+	</div><!--end: footer -->
+</div><!--end: home 自定义的最大容器 -->
+
+
+    
+
+    <input type="hidden" id="antiforgery_token" value="CfDJ8GsLOKiGtk1Au0UP1SouGdXQKZReQPWd2n176uL5K7RL1GMZDWCWbXgueJ1JSy45fb6KCy8aBj5Nv8cA71kxUBY3R98t6E62SNFVI_oBov0Uhi6nxFXYhu50bNnt27ev2hlTq9Vy_c1EbwIOWIq5NIU" />
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-476124-1"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    var kv = getGACustom();
+    if (kv) {
+        gtag('set', kv);
+    }
+    gtag('config', 'UA-476124-1');
+    </script>
+    <script defer src="https://hm.baidu.com/hm.js?866c9be12d4a814454792b1fd0fed295"></script>
+</body>
+</html>
